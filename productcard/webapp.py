@@ -18,6 +18,9 @@ from .theme import THEMES
 
 def _generate(
     image: Optional[Image.Image],
+    engine: str,
+    orientation: str,
+    style: str,
     use_ai: bool,
     hint: str,
     theme: str,
@@ -79,8 +82,25 @@ def _generate(
             except Exception as exc:  # noqa: BLE001
                 status = f"⚠️ AI 文案生成失败，已改用手动文案：{exc}"
 
+    use_nanobanana = engine.startswith("AI") or "nano" in engine.lower()
+    if use_nanobanana:
+        from . import generate
+
+        if not generate.image_gen_available():
+            status += (
+                "\n⚠️ 未检测到图像生成配置（ZENMUX_API_KEY），已改用本地排版引擎。"
+            )
+        else:
+            try:
+                card = generate.generate_card(
+                    image, info, orientation=orientation, style_hint=style
+                )
+                return card, (status + "\n🍌 已由 Nano Banana Pro 生成").strip(), info.to_json()
+            except Exception as exc:  # noqa: BLE001
+                status += f"\n⚠️ AI 出图失败，已改用本地排版：{exc}"
+
     card = compose_card(image, info, theme=theme)
-    return card, (status or "✅ 生成完成"), info.to_json()
+    return card, (status or "✅ 生成完成").strip(), info.to_json()
 
 
 def build_demo():
@@ -89,18 +109,33 @@ def build_demo():
     with gr.Blocks(title="商品介绍图生成器") as demo:
         gr.Markdown(
             "# 🛍️ 商品介绍图生成器\n"
-            "上传商品图片，自动合成电商风格的商品介绍图。"
-            "可手动填写文案，或勾选 **AI 自动文案**（需配置 `OPENAI_API_KEY`）让模型看图生成。"
+            "上传商品图片，生成电商风格的商品介绍图。两种引擎：\n"
+            "- **本地排版 (compose)**：纯本地 Pillow 排版，免费、可控、不需要联网。\n"
+            "- **AI 出图 (Nano Banana Pro)**：交给图像生成模型直接重绘成实拍级成品图（需配置 `ZENMUX_API_KEY`）。\n\n"
+            "文案可手动填写，或勾选 **AI 自动文案**（需配置 `OPENAI_API_KEY`）让模型看图生成。"
         )
         with gr.Row():
             with gr.Column(scale=1):
                 image_in = gr.Image(label="商品图片", type="pil", height=320)
+                engine = gr.Radio(
+                    ["本地排版 (compose)", "AI 出图 (Nano Banana Pro)"],
+                    value="本地排版 (compose)",
+                    label="生成引擎",
+                    info="AI 出图需配置 ZENMUX_API_KEY",
+                )
+                with gr.Row():
+                    orientation = gr.Dropdown(
+                        ["portrait", "square", "landscape"],
+                        value="portrait",
+                        label="构图方向 (AI 出图)",
+                    )
+                    theme = gr.Dropdown(
+                        list(THEMES), value="fresh", label="主题配色 (本地排版)"
+                    )
+                style = gr.Textbox(label="AI 出图风格提示（可选）", placeholder="例如：ins 风、莫兰迪色、纯白背景")
                 with gr.Row():
                     use_ai = gr.Checkbox(label="AI 自动文案", value=False)
-                    theme = gr.Dropdown(
-                        list(THEMES), value="fresh", label="主题配色"
-                    )
-                hint = gr.Textbox(label="给 AI 的补充提示（可选）", placeholder="例如：主打学生群体")
+                hint = gr.Textbox(label="给 AI 文案的补充提示（可选）", placeholder="例如：主打学生群体")
                 title = gr.Textbox(label="标题", placeholder="便携保温水杯 500ml")
                 tagline = gr.Textbox(label="副标题 / slogan")
                 points = gr.Textbox(
@@ -125,8 +160,9 @@ def build_demo():
         btn.click(
             _generate,
             inputs=[
-                image_in, use_ai, hint, theme, title, tagline, points,
-                description, price, original_price, brand, badge,
+                image_in, engine, orientation, style, use_ai, hint, theme,
+                title, tagline, points, description, price, original_price,
+                brand, badge,
             ],
             outputs=[out_image, status, out_json],
         )

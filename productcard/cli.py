@@ -79,8 +79,17 @@ def main(argv: List[str] | None = None) -> int:
     parser.add_argument("images", nargs="+", help="商品图片文件或文件夹（可多个）")
     parser.add_argument("-o", "--output", default="output", help="输出目录（默认 output）")
     parser.add_argument(
-        "-t", "--theme", default="fresh", choices=list(THEMES), help="主题配色"
+        "-t", "--theme", default="fresh", choices=list(THEMES), help="主题配色（compose 引擎）"
     )
+    parser.add_argument(
+        "-e", "--engine", default="compose", choices=["compose", "nanobanana"],
+        help="生成引擎：compose=本地 Pillow 排版；nanobanana=AI 直接出图（需 ZENMUX_API_KEY）",
+    )
+    parser.add_argument(
+        "--orientation", default="portrait", choices=["portrait", "square", "landscape"],
+        help="AI 出图的构图方向（nanobanana 引擎）",
+    )
+    parser.add_argument("--style", default="", help="AI 出图的额外风格提示（nanobanana 引擎）")
     parser.add_argument("--ai", action="store_true", help="用视觉模型自动生成文案")
     parser.add_argument("--hint", default="", help="给 AI 的补充提示")
     parser.add_argument("--info", help="包含商品文案的 JSON 文件")
@@ -116,6 +125,18 @@ def main(argv: List[str] | None = None) -> int:
         else:
             analyzer = analyze
 
+    generator = None
+    if args.engine == "nanobanana":
+        from . import generate
+
+        if not generate.image_gen_available():
+            print(
+                "⚠️  未检测到图像生成配置（ZENMUX_API_KEY），将改用本地 compose 引擎。",
+                file=sys.stderr,
+            )
+        else:
+            generator = generate
+
     ok = 0
     for img_path in images:
         try:
@@ -134,7 +155,19 @@ def main(argv: List[str] | None = None) -> int:
                 print(f"⚠️  {img_path.name} AI 文案生成失败，改用默认文案：{exc}",
                       file=sys.stderr)
 
-        card = compose_card(image, info, theme=args.theme)
+        card = None
+        if generator is not None:
+            try:
+                card = generator.generate_card(
+                    image, info, orientation=args.orientation, style_hint=args.style
+                )
+                print(f"🍌 {img_path.name} 已由 Nano Banana Pro 生成")
+            except Exception as exc:  # noqa: BLE001
+                print(f"⚠️  {img_path.name} AI 出图失败，改用本地排版：{exc}",
+                      file=sys.stderr)
+        if card is None:
+            card = compose_card(image, info, theme=args.theme)
+
         out_path = out_dir / f"{img_path.stem}_card.png"
         card.save(out_path)
         print(f"✅ {out_path}")

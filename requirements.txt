@@ -6,3 +6,6 @@ gradio>=4.0.0
 
 # AI 自动文案（可选，需要兼容 OpenAI 的视觉模型）
 openai>=1.0.0
+
+# AI 直接出图（可选，Nano Banana Pro / Gemini 3 Pro Image，经 ZenMux 调用）
+google-genai>=1.0.0

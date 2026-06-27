@@ -1,15 +1,27 @@
 # 🛍️ 商品介绍图生成器 (Product Intro Image Generator)
 
-给程序一张**商品图片**，它就能帮你合成一张精美的、电商风格的**商品介绍图**
+给程序一张**商品图片**，它就能帮你生成一张精美的、电商风格的**商品介绍图**
 （带标题、卖点、价格、品牌、主题配色等排版）。
 
-- 🖼️ **纯本地排版**：核心功能用 [Pillow](https://python-pillow.org/) 实现，不需要联网，开箱即用。
+提供两种生成引擎：
+
+- 🖼️ **本地排版 (compose)**：用 [Pillow](https://python-pillow.org/) 把商品图拼进现代版式卡片，免费、可控、不需要联网，开箱即用。
+- 🍌 **AI 出图 (Nano Banana Pro)**：把商品图交给图像生成模型（Google Gemini 3 Pro Image，经 [ZenMux](https://zenmux.ai) 调用）**直接重绘成实拍级成品图**，自动搭配场景与文案排版。
+
+其它特性：
+
 - 🤖 **可选 AI 文案**：配置兼容 OpenAI 的视觉模型后，可让模型"看图"自动生成中文商品文案。
-- 🌈 **5 套主题配色**：`fresh` / `dark` / `elegant` / `vivid` / `ocean`。
+- 🌈 **5 套主题配色**（本地排版）：`fresh` / `dark` / `elegant` / `vivid` / `ocean`。
 - 💻 **两种用法**：友好的网页界面 + 支持批量的命令行工具。
 - 🈶 **中文友好**：自动寻找系统中文字体，渲染不乱码。
 
 ## 效果预览
+
+**AI 出图 (Nano Banana Pro)** —— 输入一张普通商品图，直接生成实拍级成品：
+
+![nanobanana](examples/nanobanana_module.png)
+
+**本地排版 (compose)** —— 多套主题，纯本地渲染：
 
 | fresh | dark | elegant |
 |---|---|---|
@@ -66,7 +78,36 @@ python -m productcard.cli ./photos -o output --theme ocean
 }
 ```
 
-## 用法三：AI 自动看图生成文案（可选）
+## 用法三：AI 直接出图（Nano Banana Pro，可选）
+
+把商品图片交给图像生成模型直接重绘成成品介绍图。通过 [ZenMux](https://zenmux.ai) 调用 Google Gemini 3 Pro Image（Nano Banana Pro）：
+
+```bash
+pip install google-genai
+export ZENMUX_API_KEY="你的 ZenMux 密钥"
+
+# 命令行：用 --engine nanobanana
+python -m productcard.cli photo.jpg -o output --engine nanobanana \
+    --title "手冲咖啡马克杯" --tagline "每天从一杯好咖啡开始" \
+    --points "陶瓷材质细腻顺滑" "大容量350ml" "微波炉可用" \
+    --price "¥69" --original-price "¥99" --brand "COFFEE TIME" --badge "热卖" \
+    --orientation portrait --style "莫兰迪色系，纯净背景"
+```
+
+可选环境变量：
+
+```bash
+# 默认即 Nano Banana Pro，可换成其它图像生成模型
+export PRODUCTCARD_IMAGE_MODEL="google/gemini-3-pro-image-preview"
+# 也可换成免费档（有限速）：google/gemini-3-pro-image-preview-free
+export PRODUCTCARD_IMAGE_BASE_URL="https://zenmux.ai/api/vertex-ai"
+```
+
+`--orientation` 支持 `portrait`（竖版，默认）/ `square`（方形主图）/ `landscape`（横版 banner）。
+出图失败时会自动回退到本地 `compose` 引擎，不会中断批量任务。
+在网页界面里，把「生成引擎」切换到 **AI 出图 (Nano Banana Pro)** 即可。
+
+## 用法四：AI 自动看图生成文案（可选）
 
 配置好兼容 OpenAI 的视觉模型后，加上 `--ai` 即可让模型根据图片自动生成中文文案：
 
@@ -111,7 +152,8 @@ export PRODUCTCARD_FONT="/path/to/your/font.ttf"
 
 ```
 productcard/
-├── compose.py   # 核心：Pillow 排版引擎
+├── compose.py   # 引擎一：Pillow 本地排版
+├── generate.py  # 引擎二：Nano Banana Pro AI 出图（经 ZenMux）
 ├── theme.py     # 主题配色
 ├── fonts.py     # 中文字体发现
 ├── model.py     # 商品信息数据模型
