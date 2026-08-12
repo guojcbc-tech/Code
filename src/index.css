@@ -1,0 +1,65 @@
+:root {
+  --ink: #13221f;
+  --ink-soft: #3d524c;
+  --mute: #6b8179;
+  --paper: rgba(247, 251, 249, 0.72);
+  --paper-solid: #f4faf7;
+  --line: rgba(19, 34, 31, 0.12);
+  --teal: #0f766e;
+  --teal-deep: #0a4f49;
+  --mint: #5eead4;
+  --glow: rgba(45, 168, 148, 0.35);
+  --danger: #b42318;
+  --warn: #9a6700;
+  --radius: 18px;
+  --font-display: 'Sora', 'Noto Sans SC', sans-serif;
+  --font-body: 'Noto Sans SC', 'Sora', sans-serif;
+  --shadow: 0 24px 60px rgba(15, 40, 35, 0.12);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #d7ebe4;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
